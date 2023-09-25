@@ -2,18 +2,15 @@ import React, { useContext} from "react";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import ScrollToTop from "./component/scrollToTop";
 import { BackendURL } from "./component/backendURL";
-
-
 import { Home } from "./pages/home";
 import { Login } from "./pages/login";
+import { TermsAndConditions } from "./pages/termsAndConditions";
 import { RecoverPass } from "./pages/recoverPass";
 import { Students } from "./pages/students";
-import { LearnMore } from "./pages/LearnMore";
 import { Donations } from "./pages/donations";
 import { Single } from "./pages/single";
 import { SubjectsPage } from "./pages/subjectsPage";
 import injectContext from "./store/appContext";
-
 import { Navbar } from "./component/navbar/navbar";
 import { Footer } from "./component/footer/footer";
 import { Sidebar } from "./component/sidebar/sidebar";
@@ -21,14 +18,12 @@ import { Dashboard } from "./pages/dashboard"
 import { Classes } from "./pages/classes"
 import { Profile } from "./pages/Profile";
 import { JobsNearby } from "./pages/JobsNearby"
-
 import { Context } from "./store/appContext";
 
 
-//create your first component
+
 const Layout = () => {
-    //the basename is used when your project is published in a subdirectory and not in the root of the domain
-    // you can set the basename on the .env file located at the root of this project, E.g: BASENAME=/react-hello-webapp/
+   
     const basename = process.env.BASENAME || "";
     const { store, actions } = useContext(Context);
 
@@ -55,10 +50,10 @@ const Layout = () => {
                             <Routes>
                                 <Route element={<Home />} path="/" />
                                 <Route element={<Login />} path="/login" />
+                                <Route element={<TermsAndConditions />} path="/termsAndConditions" />
                                 <Route element={<RecoverPass />} path="/recoverPass" />
                                 <Route element={<Students />} path="/students" />
                                 <Route element={<Donations />} path="/donations" />
-                                <Route element={<LearnMore />} path="/demo" />
                                 <Route element={<Dashboard />} path="/dashboard" />
                                 <Route element={<Classes />} path="/classes" />
                                 <Route element={<SubjectsPage />} path="/subjects" />

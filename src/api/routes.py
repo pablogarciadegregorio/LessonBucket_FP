@@ -14,17 +14,6 @@ import datetime
 
 api = Blueprint('api', __name__)
 
-
-# @api.route('/hello', methods=['POST', 'GET'])
-# def handle_hello():
-
-#     response_body = {
-#         "message": "Hello! I'm a message that came from the backend, check the network tab on the google inspector and you will see the GET request"
-#     }
-
-#     return jsonify(response_body), 200
-
-
 # ENDPOINT GET A USER
 
 @api.route('/user/<int:user_id>', methods=['GET'])
@@ -52,7 +41,7 @@ def register():
 
     request_body = request.get_json(force=True)
 
-    required_fields = ["name", "email", "password", "birth_date", "address"]
+    required_fields = ["name", "email", "password"]
     for field in required_fields:
         if field not in request_body or not request_body[field]:
             raise APIException(f'The "{field}" field cannot be empty', 400)
@@ -61,8 +50,7 @@ def register():
     if verify_email:
         raise APIException("An account with this email already exists", 400)
 
-    user = User(name=request_body["name"], email=request_body["email"], password=request_body["password"],
-                birth_date=request_body["birth_date"], address=request_body["address"])
+    user = User(name=request_body["name"], email=request_body["email"], password=request_body["password"])
 
     db.session.add(user)
 
@@ -496,131 +484,6 @@ def update_student(user_id, student_id):
         raise APIException('Internal error', 500)
 
 
-# ENDPOINT GET ALL COMMENTS
-
-@api.route('/user/<int:user_id>/students/<int:students_id>/comments', methods=['GET'])
-def get_all_comments(user_id, students_id):
-
-    comments_query = Comments.query.all()
-
-    if not comments_query:
-        raise APIException('The list of comments is empty', 404)
-
-    results = list(map(lambda item: item.serialize(), comments_query))
-
-    try:
-        response_body = {
-            "msg": "List of comments obtained",
-            "results": results
-        }
-
-    except:
-        raise APIException('Internal error', 500)
-
-    return jsonify(response_body), 200
-
-
-# ENDPOINT GET ONE COMMENT
-
-@api.route('/user/<int:user_id>/students/<int:students_id>/comments/<int:comments_id>', methods=['GET'])
-def get_one_comment(user_id, students_id, comments_id):
-
-    try:
-        comment_information = Comments.query.filter_by(id=comments_id).first()
-
-        response_body = {
-            "msg": "Comment obtained",
-            "students": comment_information.serialize()
-        }
-
-        return jsonify(response_body), 200
-
-    except:
-        raise APIException('Comments not found', 404)
-
-
-# ENDPOINT CREATE ONE COMMENT
-
-@api.route("/user/<int:user_id>/students/<int:students_id>/comments", methods=["POST"])
-def create_one_comment(user_id, students_id):
-
-    request_body = request.get_json(force=True)
-
-    required_fields = ["text_content"]
-    for field in required_fields:
-        if field not in request_body or not request_body[field]:
-            raise APIException(f'The "{field}" field cannot be empty', 400)
-
-    comment = Comments(text_content=request_body["text_content"])
-
-    db.session.add(comment)
-
-    try:
-        db.session.commit()
-    except:
-        raise APIException('Internal error', 500)
-
-    response_body = {
-        "msg": "Comment created",
-        "comment": comment.serialize()
-    }
-
-    return jsonify(response_body), 200
-
-# ENDPOINT DELETE COMMENT
-
-
-@api.route('/user/<int:user_id>/students/<int:students_id>/comments/<int:comments_id>', methods=['DELETE'])
-def del_comment(user_id, students_id, comments_id):
-
-    comment_query = Comments.query.filter_by(id=comments_id).first()
-
-    if not comment_query:
-        raise APIException('Student not found', 404)
-
-    try:
-        db.session.delete(comment_query)
-        db.session.commit()
-
-        response_body = {
-            "msg": "comment successfully deleted",
-        }
-
-    except:
-        raise APIException('Internal error', 500)
-
-    return jsonify(response_body), 200
-
-
-# ENDPOINT MODIFY A COMMENT
-
-@api.route('/user/<int:user_id>/students/<int:students_id>/comments/<int:comments_id>', methods=['PUT'])
-def modify_comment(user_id, students_id, comments_id):
-
-    body = request.get_json(force=True)
-    comment = Comments.query.get(comments_id)
-
-    if not comment:
-        raise APIException('Student not found', 404)
-
-    required_fields = ["text_content"]
-    for field in required_fields:
-        if field not in body or not body[field]:
-            raise APIException(f'The "{field}" field cannot be empty', 400)
-
-    comment.text_content = body["text_content"]
-
-    try:
-        db.session.commit()
-    except:
-        raise APIException('Internal error', 500)
-
-    response_body = {
-        "msg": "Comment successfully modified",
-        "comment": comment.serialize()
-    }
-    return jsonify(response_body), 200
-
 
 # ENDPOINT DE VALIDACIÓN
 
@@ -748,30 +611,36 @@ def create_one_class(user_id):
 
  # ENDPOINT MODIFY A CLASS
 
-@api.route('/user/<int:user_id>/class/<int:class_id>', methods=['PUT'])
+@api.route('/user/<int:user_id>/class/<int:class_id>', methods=['PATCH'])
 def modify_class(user_id, class_id):
 
-    body = request.get_json(force=True)
+
     newClass = Class.query.get(class_id)
 
     if not newClass:
         raise APIException('Class not found', 404)
-    
+
     if newClass.user_id != user_id:
-            raise APIException('Class does not belong to the specified user', 400)
+        raise APIException('Class does not belong to the specified user', 400)
+    
 
-    required_fields = ["subjects_id", "student_id", "comments", "date", "hour", "price",]
-    for field in required_fields:
-        if field not in body or not body[field]:
-            raise APIException(f'The "{field}" field cannot be empty', 400)
+    data = request.get_json()
+    if 'subjects_id' in data:
+            newClass.subjects_id = data['subjects_id']
+    if 'student_id' in data:
+            newClass.student_id = data['student_id']
+    if 'comments' in data:
+            newClass.comments = data['comments']
+    if 'date' in data:
+            newClass.date = data['date']
+    if 'price' in data:
+            newClass.price = data['price']
+    if 'hour' in data:
+            newClass.hour = data['hour']
+    if 'paid' in data:
+            newClass.paid = data['paid']
 
-    newClass.subjects_id = body["subjects_id"]
-    newClass.student_id = body["student_id"]
-    newClass.comments = body["comments"]
-    newClass.date = body["date"]
-    newClass.price = body["price"]
-    newClass.paid = body["paid"]
-
+    print(data)
     try:
         db.session.commit()
 

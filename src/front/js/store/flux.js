@@ -5,45 +5,96 @@ const getState = ({ getStore, getActions, setStore }) => {
 	return {
 		store: {
 			message: null,
-
-			// ALMACEN DE USUARIOS
 			user: {},
-			// ALMACEN DE Token
 			token: "",
-			//ALMACEN DE PASSWORD
 			recoverPass: "",
-			// ESTADO DE DE LOGADO PARA GESTIÓN TOKEN
 			logged: false,
-			// ALMACEN DE ESTUDIANTES
 			allStudents: [],
-			//ALMACEN DE TRABAJOS
 			jobs: [],
-
-
-			demo: [
-				{
-					title: "FIRST",
-					background: "white",
-					initial: "white"
-				},
-				{
-					title: "SECOND",
-					background: "white",
-					initial: "white"
-				}
-			],
 			classes: [],
 			allSubjects: [],
 			studentsPendingPayment: [],
 			studentsPerSubject: [],
+			pastClasses: [],
+			futureClasses: [],
+			paymentFilteredClass: [],
 		},
 		actions: {
 
+			// FUNCIONES PARA ORDENAR CLASES Y FILTRAR DE COMPONENTE PAGOS PENDIENTES
 
+			sortBySoonestDate(a, b) {
+
+				const dateA = new Date(a.date);
+				const dateB = new Date(b.date);
+				if (a.date > b.date) {
+					return 1;
+				}
+				if (a.date < b.date) {
+					return -1;
+				}
+
+				return 0;
+			},
+
+			orderFutureClasses() {
+				let today = new Date();
+				const futureFilteredClasses = getStore().classes.filter((item) => new Date(item.date) > today)
+					.sort(this.sortBySoonestDate);
+				setStore({
+					futureClasses: futureFilteredClasses,
+			})	
+
+			},
+
+			orderPastClasses() {
+				let today = new Date();
+				const pastFilteredClasses = getStore().classes.filter((item) => new Date(item.date) < today)
+					.sort(this.sortBySoonestDate);
+				setStore({
+					pastClasses: pastFilteredClasses,
+				})
+			},
+
+
+			paymentFiltered() {
+				const UnpaidClasses = getStore().pastClasses
+				const paymentFilteredClass = UnpaidClasses.filter((payment) => payment.paid === false)
+				setStore({
+					paymentFilteredClass
+				})
+			},
+
+			// FIN DE FUNCIONES PARA ORDENAR CLASES Y FILTRAR DE COMPONENTE PAGOS PENDIENTES
+
+			//FUNCIÓN PARA VERIFICAR TOKEN JWT
+
+			getProfile: async () => {
+				const token = sessionStorage.getItem("token")
+
+				try {
+
+					const data = await axios.get(process.env.BACKEND_URL + "/api/protected", {
+						headers: {
+							"Authorization": `Bearer ${token}`,
+						}
+					})
+
+					console.log(data);
+					setStore({ logged: true })
+					return true;
+
+				} catch (error) {
+
+					console.log(error);
+					setStore({ logged: false })
+					return false;
+				}
+			},
 
 			// FUNCION PARA CREAR USUARIO
 
-			signup: async (dataName, dataEmail, dataPassword, dataBirthDate, dataAddress) => {
+			signup: async (dataName, dataEmail, dataPassword) => {
 
 				try {
 
@@ -51,8 +102,6 @@ const getState = ({ getStore, getActions, setStore }) => {
 						name: dataName,
 						email: dataEmail,
 						password: dataPassword,
-						birth_date: dataBirthDate,
-						address: dataAddress
 					});
 
 					const data = response.data;
@@ -62,8 +111,6 @@ const getState = ({ getStore, getActions, setStore }) => {
 							"name": dataName,
 							"email": dataEmail,
 							"password": dataPassword,
-							"birth_date": dataBirthDate,
-							"address": dataAddress,
 							"id": data.user.id
 						},
 					});
@@ -593,15 +640,12 @@ const getState = ({ getStore, getActions, setStore }) => {
 
 
 			updateSubjectClassInStore: async (class_id, updatedInfo) => {
-				console.log(class_id);
-				console.log(updatedInfo);
-				console.log("Entrando...")
 
 				const user_id = getStore().user.id;
 				const token = getStore().token;
 
 				try {
-					const response = await axios.put(
+					const response = await axios.patch(
 						`${process.env.BACKEND_URL}/api/user/${user_id}/class/${class_id}`,
 						updatedInfo,
 						{
@@ -611,12 +655,8 @@ const getState = ({ getStore, getActions, setStore }) => {
 						}
 					);
 
-					console.log(response.data);
+
 					const modifyClass = [...getStore().classes, response.data.user];
-
-					console.log(response);
-					console.log(modifyClass);
-
 
 					setStore({
 						classes: modifyClass,
@@ -624,6 +664,11 @@ const getState = ({ getStore, getActions, setStore }) => {
 
 					sessionStorage.setItem("classes", JSON.stringify(response.data));
 
+					if (response.status == 200) {
+						getActions().getAllSubjects();
+						getActions().fetchClasses();
+						getActions().getAllStudents();
+					}
 
 					return true;
 
@@ -632,6 +677,18 @@ const getState = ({ getStore, getActions, setStore }) => {
 					return false;
 				}
 			},
+
+			// markClassAsPaid : async(class_id) => {
+			// 	const data = {
+			// 	  paid: true,
+			// 	};
+
+			// 	return axios.patch(`/user/${user_id}/class/${class_id}`, data)
+			// 	  .then((response) => response.data)
+			// 	  .catch((error) => {
+			// 		throw error;
+			// 	  });
+			//   },
 
 			//   DELETE ONE CLASS
 
@@ -674,7 +731,7 @@ const getState = ({ getStore, getActions, setStore }) => {
 							"Authorization": `Bearer ${token}`,
 						}
 					});
-					console.log(response)
+
 					const subjects = response.data.results
 
 					setStore({
@@ -859,88 +916,36 @@ const getState = ({ getStore, getActions, setStore }) => {
 					return false;
 				}
 			},
-			// getAllStudentsPerSubject: async (subject_id) => {
-			// 	const user_id = getStore().user.id;
-			// 	const token = getStore().token
 
-			// 	try {
-			// 		let response = await axios.get(process.env.BACKEND_URL + `/api/user/${user_id}/students/${subject_id}`, {
-			// 			headers: {
-			// 				"Authorization": `Bearer ${token}`,
-			// 			}
-			// 		});
-
-			// 		const studentsPerSubject = response.data.results
-
-
-
-			// 		setStore({
-			// 			AllStudents: studentsPerSubject
-			// 		});
-
-			// 		return true;
-
-			// 	} catch (error) {
-			// 		console.error("An error occurred during student retrieval", error);
-			// 		return false;
-			// 	}
-			// },
-
-
-
-
-			// const axios = require('axios');
-
-			// const options = {
-			//   method: 'GET',
-			//   url: 'https://jsearch.p.rapidapi.com/search',
-			//   params: {
-			// 	query: 'English teacher, Madrid',
-			// 	page: '1',
-			// 	num_pages: '1',
-			// 	radius: '100'
-			//   },
-			//   headers: {
-			// 	'X-RapidAPI-Key': '19b84f07b9msh08a479272b6bd97p13dfbejsnc7c8cbd54776',
-			// 	'X-RapidAPI-Host': 'jsearch.p.rapidapi.com'
-			//   }
-			// };
-
-			// try {
-			// 	const response = await axios.request(options);
-			// 	console.log(response.data);
-			// } catch (error) {
-			// 	console.error(error);
-			// }
 			getJobsNearby: async (subject) => {
 
 				const axios = require('axios');
-						const options = {
-						  method: 'GET',
-						  url: 'https://jsearch.p.rapidapi.com/search',
-						  params: {
-							query: `'${subject} teacher, Madrid'`,
-							page: '1',
-							num_pages: '1',
-							radius: '100'
-						  },
-						  headers: {
-							'X-RapidAPI-Key': '3dc3799804msh2912cb6e44dc3c1p13e983jsn1ab6d0e37a3a',
-							'X-RapidAPI-Host': 'jsearch.p.rapidapi.com'
-						  }
-						};
-						
-						try {
-							const response = await axios.request(options);
-							
-							const jobsNear = response.data.data
-							console.log(response)
-							setStore({
-								jobs: jobsNear,
-						});
-						} catch (error) {
-							console.error(error);
-						}
+				const options = {
+					method: 'GET',
+					url: 'https://jsearch.p.rapidapi.com/search',
+					params: {
+						query: `'${subject} teacher, Madrid'`,
+						page: '1',
+						num_pages: '1',
+						radius: '100'
+					},
+					headers: {
+						'X-RapidAPI-Key': '3dc3799804msh2912cb6e44dc3c1p13e983jsn1ab6d0e37a3a',
+						'X-RapidAPI-Host': 'jsearch.p.rapidapi.com'
+					}
+				};
+
+				try {
+					const response = await axios.request(options);
+
+					const jobsNear = response.data.data
+					console.log(response)
+					setStore({
+						jobs: jobsNear,
+					});
+				} catch (error) {
+					console.error(error);
+				}
 			}
 
 		}

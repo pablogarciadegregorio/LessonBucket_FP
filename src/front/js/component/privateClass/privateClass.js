@@ -104,7 +104,7 @@ export const PrivateClass = (props) => {
 
     const handleUpdateClass = async (e) => {
         e.preventDefault()
-        if ((updatedClassInfo.subjects_id === "") || (updatedClassInfo.student_id === "") || !updatedClassInfo.date || !updatedClassInfo.price || !updatedClassInfo.hour || !updatedClassInfo.paid || (updatedClassInfo.comments === "")) {
+        if ((updatedClassInfo.subjects_id === "") || (updatedClassInfo.student_id === "") || !updatedClassInfo.date || !updatedClassInfo.price || !updatedClassInfo.hour) {
             swal("Please", "Fields cannot be empty", "warning", {
                 buttons: {
                     confirm: {
@@ -155,7 +155,7 @@ export const PrivateClass = (props) => {
 
         <div className="card-subject">
             <div className="card-body subject-text">
-                <p className="card-title" title={props.privateClass.subjects.Subject}> Class: {props.privateClass.subjects.Subject}</p>
+                <p className="card-text" title={props.privateClass.subjects.Subject}> Class: {props.privateClass.subjects.Subject}</p>
                 <p className="card-text" title={props.privateClass.student.name}> Student: {props.privateClass.student.name}</p>
                 <p className="card-text" title={props.privateClass.date}> Date: {props.privateClass.date}</p>
                 <p className="card-text" title={props.privateClass.hour}> Hour: {props.privateClass.hour}</p>
